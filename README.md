@@ -1,5 +1,6 @@
 # BandwidthPriority
-This software is will give a selected application the least latency possible while delaying others.
+This software will give a selected application the least latency possible while delaying others.
+
 Thanks to [WinDivert](http://reqrypt.org/windivert.html) it will capture all your packets, prioritize the chosen app
 and delay the other packets as needed.
 
