@@ -15,24 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BandwidthPriority.cpp">
+    <ClCompile Include="src\BandwidthPriority.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Divert.cpp">
+    <ClCompile Include="src\Divert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Packet.cpp">
+    <ClCompile Include="src\Packet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="windivert.h">
+    <ClInclude Include="src\Divert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Divert.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Packet.h">
+    <ClInclude Include="src\Packet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
