@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #include "Packet.h"
 
 const char* Packet::GetData() const

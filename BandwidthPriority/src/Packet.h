@@ -1,8 +1,4 @@
 #pragma once
-#include "windivert.h"
-#include <vector>
-#include <memory>
-
 #define MAXBUFFER 0xFFFF
 
 class Packet

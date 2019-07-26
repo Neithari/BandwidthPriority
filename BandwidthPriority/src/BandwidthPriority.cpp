@@ -1,9 +1,5 @@
-#include <Windows.h>
-#include <iostream>
-#include <string>
-#include <vector>
+#include "pch.h"
 
-#include "windivert.h"
 #include "Divert.h"
 #include "Packet.h"
 

@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\Precompiled Header">
+      <UniqueIdentifier>{7b490370-9608-483e-89d5-eb9afc26c48e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BandwidthPriority.cpp">
@@ -24,6 +27,9 @@
     <ClCompile Include="src\Packet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pch.cpp">
+      <Filter>Header Files\Precompiled Header</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Divert.h">
@@ -31,6 +37,9 @@
     </ClInclude>
     <ClInclude Include="src\Packet.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pch.h">
+      <Filter>Header Files\Precompiled Header</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

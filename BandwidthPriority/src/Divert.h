@@ -1,10 +1,4 @@
 #pragma once
-#include <Windows.h>
-#include <string>
-#include <iostream>
-#include <memory>
-
-#include "windivert.h"
 #include "Packet.h"
 
 class Divert
