@@ -7,9 +7,15 @@ Divert::Divert()
 {
 }
 
-Divert::Divert(std::string filter)
+Divert::Divert(const std::string& filter, int priority)
 {
-	divertHandle = WinDivertOpen(filter.c_str(), WINDIVERT_LAYER_NETWORK, 0, 0);
+	/*HANDLE WinDivertOpen(
+		__in const char* filter,
+		__in WINDIVERT_LAYER layer,
+		__in INT16 priority,
+		__in UINT64 flags
+	);*/
+	divertHandle = WinDivertOpen(filter.c_str(), WINDIVERT_LAYER_NETWORK, priority, 0);
 
 	if (divertHandle == INVALID_HANDLE_VALUE)
 	{

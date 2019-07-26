@@ -11,7 +11,7 @@ class Divert
 {
 public:
 	Divert();
-	Divert(const std::string filter);
+	Divert(const std::string& filter, int priority = 0);
 
 	Divert(const Divert& other) = delete;
 	Divert(Divert&& other) = delete;

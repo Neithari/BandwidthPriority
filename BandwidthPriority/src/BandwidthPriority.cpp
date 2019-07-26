@@ -12,12 +12,12 @@ int main(int argc, char** argv)
 {
 	Divert allPacketsHandle;
 	std::vector<std::unique_ptr<Packet>> packets;
-	packets.reserve(128);
+	packets.reserve(10);
 
 	if (allPacketsHandle.IsInitialized())
 	{
 		std::cout << "Capturing Packets:" << std::endl;
-		for (int i = 0; i < 128; i++)
+		for (int i = 0; i < 10; i++)
 		{
 			packets.push_back(allPacketsHandle.GetPacket());
 			std::cout << "Packet number: " << packets.size() << " Packet timestamp: " << packets.back()->GetAddress().Timestamp << std::endl;
