@@ -24,6 +24,9 @@ public:
 	void SendPacket(Packet& packet);
 
 private:
+	void LogError(const DWORD& errorCode);
+
+private:
 	HANDLE divertHandle;
 	bool initialized = false;
 };

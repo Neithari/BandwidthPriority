@@ -13,16 +13,8 @@ Divert::Divert(std::string filter)
 
 	if (divertHandle == INVALID_HANDLE_VALUE)
 	{
-		DWORD lastError = GetLastError();
-		if (lastError == ERROR_INVALID_PARAMETER)
-		{
-			std::cerr << "Failed to start filtering: invalid filter syntax." << std::endl;
-		}
-		else
-		{
-			std::cerr << "Failed to open the WinDivert device (code:" << lastError << ").\n" <<
-				"Make sure you run as Administrator." << std::endl;
-		}
+		std::cerr << "DivertHandle not opened.\n";
+		LogError(GetLastError());
 		initialized = false;
 	}
 	else
@@ -59,7 +51,8 @@ std::unique_ptr<Packet> Divert::GetPacket()
 	// Read a matching packet.
 	if (!WinDivertRecv(divertHandle, packet->packetData, sizeof(packet->packetData), &packet->packetLength, &packet->address))
 	{
-		std::cerr << "warning: failed to read packet (" << GetLastError() << ")\n";
+		std::cerr << "warning: failed to read packet\n";
+		LogError(GetLastError());
 	}
 	return std::move(packet);
 }
@@ -77,6 +70,54 @@ void Divert::SendPacket(Packet& packet)
 	);*/
 	if (!WinDivertSend(divertHandle, packet.packetData, packet.packetSize, &packet.packetLength, &packet.address))
 	{
-		std::cerr << "warning: failed to reinject packet (" << GetLastError() << ")\n";
+		std::cerr << "warning: failed to reinject packet\n";
+		LogError(GetLastError());
+	}
+}
+
+void Divert::LogError(const DWORD& errorCode)
+{
+	switch (errorCode)
+	{
+		//WinDivertOpen
+	case ERROR_FILE_NOT_FOUND:
+		std::cerr << "The driver files WinDivert32.sys or WinDivert64.sys were not found." << std::endl;
+		break;
+	case ERROR_ACCESS_DENIED:
+		std::cerr << "You need Administrator privileges to run this application." << std::endl;
+		break;
+	case ERROR_INVALID_PARAMETER:
+		std::cerr << "Failed to start filtering: invalid filter syntax." << std::endl;
+		break;
+	case ERROR_INVALID_IMAGE_HASH:
+		std::cerr << "The WinDivert32.sys or WinDivert64.sys driver does not have a valid digital signature." << std::endl;
+		break;
+	case ERROR_DRIVER_FAILED_PRIOR_UNLOAD:
+		std::cerr << "An incompatible version of the WinDivert driver is currently loaded." << std::endl;
+		break;
+	case ERROR_SERVICE_DOES_NOT_EXIST:
+		std::cerr << "The handle was opened with the WINDIVERT_FLAG_NO_INSTALL flag and the WinDivert driver is not already installed." << std::endl;
+		break;
+	case ERROR_DRIVER_BLOCKED:
+		std::cerr << "Failed to open the WinDivert device because the driver was blocked." << std::endl;
+		break;
+	case EPT_S_NOT_REGISTERED:
+		std::cerr << "The Base Filtering Engine service has been disabled." << std::endl;
+		break;
+		// WinDivertRecv
+	case ERROR_INSUFFICIENT_BUFFER:
+		std::cerr << "The captured packet is larger than the packet buffer." << std::endl;
+		break;
+	case ERROR_NO_DATA:
+		std::cerr << "The handle has been shutdown using WinDivertShutdown() and the packet queue is empty." << std::endl;
+		break;
+		// WinDivertSend
+	case ERROR_HOST_UNREACHABLE:
+		std::cerr << "An impostor packet is injected and the ip.TTL or ipv6.HopLimit field is 0.\n" <<
+			"Refused to send to not get stuck in a infinite loop caused by impostor packets." << std::endl;
+		break;
+	default:
+		std::cerr << "An unknown error occured (code:" << errorCode << ").\n" << std::endl;
+		break;
 	}
 }
