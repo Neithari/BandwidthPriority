@@ -4,11 +4,11 @@
 
 Divert::Divert()
 	:
-	Divert("true")
+	Divert("true", WINDIVERT_LAYER_NETWORK)
 {
 }
 
-Divert::Divert(const std::string& filter, int priority)
+Divert::Divert(const std::string& filter,const WINDIVERT_LAYER layer, int priority, unsigned int flags)
 {
 	/*HANDLE WinDivertOpen(
 		__in const char* filter,
@@ -16,7 +16,7 @@ Divert::Divert(const std::string& filter, int priority)
 		__in INT16 priority,
 		__in UINT64 flags
 	);*/
-	divertHandle = WinDivertOpen(filter.c_str(), WINDIVERT_LAYER_NETWORK, priority, 0);
+	divertHandle = WinDivertOpen(filter.c_str(), layer, priority, flags);
 
 	if (divertHandle == INVALID_HANDLE_VALUE)
 	{
@@ -42,6 +42,18 @@ Divert::~Divert()
 bool Divert::IsInitialized() const
 {
 	return initialized;
+}
+
+std::unique_ptr<WINDIVERT_ADDRESS> Divert::ReadPacketAddress()
+{
+	// Read a matching packet.
+	auto address = std::make_unique <WINDIVERT_ADDRESS>();
+	if (!WinDivertRecv(divertHandle, nullptr, 0,nullptr,address.get()))
+	{
+		std::cerr << "warning: failed to receive packet\n";
+		LogError(GetLastError());
+	}
+	return std::move(address);
 }
 
 std::unique_ptr<Packet> Divert::GetPacket()
@@ -80,6 +92,21 @@ void Divert::SendPacket(Packet& packet)
 		std::cerr << "warning: failed to reinject packet\n";
 		LogError(GetLastError());
 	}
+}
+
+std::string Divert::GetIPAddress(UINT32 address)
+{
+	char buffer[128];
+	WinDivertHelperFormatIPv4Address(address, buffer, sizeof(buffer));
+	return std::move(std::string(buffer));
+}
+
+std::string Divert::GetIPAddress(const UINT32* address)
+{
+	char buffer[128];
+	char destination[128];
+	WinDivertHelperFormatIPv6Address(address, buffer, sizeof(buffer));
+	return std::move(std::string(buffer));
 }
 
 void Divert::LogError(const DWORD& errorCode)
