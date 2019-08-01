@@ -44,9 +44,9 @@ bool Divert::IsInitialized() const
 	return initialized;
 }
 
-std::unique_ptr<WINDIVERT_ADDRESS> Divert::ReadPacketAddress()
+std::unique_ptr<WINDIVERT_ADDRESS> Divert::GetPacketAddress() const
 {
-	// Read a matching packet.
+	// Read a matching packet address.
 	auto address = std::make_unique <WINDIVERT_ADDRESS>();
 	if (!WinDivertRecv(divertHandle, nullptr, 0,nullptr,address.get()))
 	{
@@ -75,8 +75,6 @@ std::unique_ptr<Packet> Divert::GetPacket()
 	}
 	return std::move(packet);
 }
-
-
 
 void Divert::SendPacket(Packet& packet)
 {
@@ -109,7 +107,7 @@ std::string Divert::GetIPAddress(const UINT32* address)
 	return std::move(std::string(buffer));
 }
 
-void Divert::LogError(const DWORD& errorCode)
+void Divert::LogError(const DWORD& errorCode) const
 {
 	switch (errorCode)
 	{
@@ -154,4 +152,103 @@ void Divert::LogError(const DWORD& errorCode)
 		std::cerr << "An unknown error occured (code:" << errorCode << ").\n" << std::endl;
 		break;
 	}
+}
+
+Header::Header(const Packet& packet)
+{
+	//BOOL WinDivertHelperParsePacket(
+	//	__in PVOID pPacket,
+	//	__in UINT packetLen,
+	//	__out_opt PWINDIVERT_IPHDR * ppIpHdr,
+	//	__out_opt PWINDIVERT_IPV6HDR * ppIpv6Hdr,
+	//	__out_opt UINT8 * pProtocol,
+	//	__out_opt PWINDIVERT_ICMPHDR * ppIcmpHdr,
+	//	__out_opt PWINDIVERT_ICMPV6HDR * ppIcmpv6Hdr,
+	//	__out_opt PWINDIVERT_TCPHDR * ppTcpHdr,
+	//	__out_opt PWINDIVERT_UDPHDR * ppUdpHdr,
+	//	__out_opt PVOID * ppData,
+	//	__out_opt UINT * pDataLen,
+	//	__out_opt PVOID * ppNext,
+	//	__out_opt UINT * pNextLen
+	//);
+	WinDivertHelperParsePacket(packet.GetData(), packet.GetLength(), &ip_header, &ipv6_header, &protocol,
+		&icmp_header, &icmpv6_header, &tcp_header, &udp_header, NULL, NULL, NULL, NULL);
+}
+
+std::string Header::GetSource()
+{
+	if (ip_header)
+	{
+		return Divert::GetIPAddress(ip_header->SrcAddr);
+	}
+	if (ipv6_header)
+	{
+		return Divert::GetIPAddress(ipv6_header->SrcAddr);
+	}
+	return std::string();
+}
+
+std::string Header::GetDestination()
+{
+	if (ip_header)
+	{
+		return Divert::GetIPAddress(ip_header->DstAddr);
+	}
+	if (ipv6_header)
+	{
+		return Divert::GetIPAddress(ipv6_header->DstAddr);
+	}
+	return std::string();
+}
+
+UINT16 Header::GetSourcePort()
+{
+	if (tcp_header)
+	{
+		return tcp_header->SrcPort;
+	}
+	if (udp_header)
+	{
+		return udp_header->SrcPort;
+	}
+	return 0;
+}
+
+UINT16 Header::GetDestinationPort()
+{
+	if (tcp_header)
+	{
+		return tcp_header->DstPort;
+	}
+	if (udp_header)
+	{
+		return udp_header->DstPort;
+	}
+	return 0;
+}
+
+UINT8 Header::GetVersion()
+{
+	if (ip_header)
+	{
+		return ip_header->Version;
+	}
+	if (ipv6_header)
+	{
+		return ipv6_header->Version;
+	}
+	return 0;
+}
+
+UINT16 Header::GetLength()
+{
+	if (ip_header)
+	{
+		return ip_header->Length;
+	}
+	if (ipv6_header)
+	{
+		return ipv6_header->Length;
+	}
+	return 0;
 }

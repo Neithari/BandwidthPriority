@@ -3,105 +3,98 @@
 #include "Divert.h"
 #include "Packet.h"
 
+void PrintAddressDetails(const WINDIVERT_ADDRESS& address)
+{
+	std::cout <<	"Timestamp: "	<< address.Timestamp	<< "\n" <<
+					"Outbound: "	<< address.Outbound		<< "\n" <<
+					"IPv6: "		<< address.IPv6			<< "\n" <<
+					"IPChecksum: "	<< address.IPChecksum	<< "\n" <<
+					"TCPChecksum: " << address.TCPChecksum	<< "\n" <<
+					"UDPChecksum: " << address.UDPChecksum	<< std::endl;
+	if (address.Layer == WINDIVERT_LAYER_FLOW)
+	{
+		const UINT32* src, * dest;
+		UINT16 srcPort, destPort;
+		if (address.Outbound == 1)
+		{
+			src = address.Flow.LocalAddr;
+			dest = address.Flow.RemoteAddr;
+
+			srcPort = address.Flow.LocalPort;
+			destPort = address.Flow.RemotePort;
+		}
+		else
+		{
+			src = address.Flow.RemoteAddr;
+			dest = address.Flow.LocalAddr;
+
+			srcPort = address.Flow.RemotePort;
+			destPort = address.Flow.LocalPort;
+		}
+
+		std::cout <<	"SourceAddr: "	<< Divert::GetIPAddress(src)	<< "\n" <<
+						"SourcePort: "	<< srcPort						<< "\n" <<
+						"DestAddr: "	<< Divert::GetIPAddress(dest)	<< "\n" <<
+						"DestPort: "	<< destPort						<< "\n" <<
+						"Protocol: "	<< (int)address.Flow.Protocol	<< "\n" <<
+						"ProcessID: " << address.Flow.ProcessId			<< std::endl;
+	}
+}
+
+void PrintHeaderDetails(const Packet& packet)
+{
+	Header header(packet);
+
+	std::cout <<	"SourceAddr: "	<< header.GetSource()			<< "\n" <<
+					"SourcePort: "	<< header.GetSourcePort()		<< "\n" <<
+					"DestAddr: "	<< header.GetDestination()		<< "\n" <<
+					"DestPort: "	<< header.GetDestinationPort()	<< "\n" <<
+					"Protocol: "	<< (int)header.protocol			<< "\n" <<
+					"Length: "		<< header.GetLength()			<< "\n" <<
+					"Version: "		<< (int)header.GetVersion()		<< std::endl;
+}
 
 int main(int argc, char** argv)
 {
-	Divert idHandle("true", WINDIVERT_LAYER_FLOW, 2, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
-	Divert pHandle("true", WINDIVERT_LAYER_NETWORK, 1);
-	Divert packetHandle("true", WINDIVERT_LAYER_NETWORK);
-	std::vector<std::unique_ptr<Packet>> packets;
-	packets.reserve(10);
+	Divert flowHandle("true", WINDIVERT_LAYER_FLOW, 3, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
+	Divert network1Handle("true", WINDIVERT_LAYER_NETWORK, 1);
+	Divert network0Handle("true", WINDIVERT_LAYER_NETWORK);
+	// std::vector<std::unique_ptr<Packet>> packets;
+	// packets.reserve(10);
 
 	for (int i = 0; i < 10; i++)
 	{
-		if (idHandle.IsInitialized())
+		if (flowHandle.IsInitialized())
 		{
-			std::unique_ptr<WINDIVERT_ADDRESS> address = idHandle.ReadPacketAddress();
-			std::cout << "Process ID: " << address->Flow.ProcessId <<
-				"\nTimestamp: " << address->Timestamp <<
-				"\nOutbound?: " << address->Outbound <<
-				"\nIPChecksumm: " << address->IPChecksum << std::endl;
+			std::unique_ptr<WINDIVERT_ADDRESS> address = flowHandle.GetPacketAddress();
 
-			UINT32* src, *dest;
-			if (address->Outbound == 1)
-			{
-				src = address->Flow.LocalAddr;
-				dest = address->Flow.RemoteAddr;
-			}
-			else
-			{
-				src = address->Flow.RemoteAddr;
-				dest = address->Flow.LocalAddr;
-			}
-			std::string source = pHandle.GetIPAddress(src);
-			std::string destination = pHandle.GetIPAddress(dest);
-			std::cout << "Source address: " << source <<
-				"\nDestination address: " << destination << std::endl;
+			std::cout << "\n" <<	"Flow Layer" << "\n" <<
+									"----------" << std::endl;
+			PrintAddressDetails(*address);
 		}
-		if (pHandle.IsInitialized())
+		if (network1Handle.IsInitialized())
 		{
+			auto packet = network1Handle.GetPacket();
 
-			PWINDIVERT_IPHDR ip_header;
-			PWINDIVERT_IPV6HDR ipv6_header;
-			PWINDIVERT_TCPHDR tcp_header;
-			PWINDIVERT_UDPHDR udp_header;
-			PWINDIVERT_ICMPHDR icmp_header;
-			PWINDIVERT_ICMPV6HDR icmpv6_header;
-			UINT8 protocol;
+			std::cout <<	"Network Layer: Priority 1" << "\n" <<
+							"-------------------------" << std::endl;
+			PrintAddressDetails(packet->GetAddress());
+			PrintHeaderDetails(*packet);
+			
+			std::cout << "Sending Packet" << std::endl;
+			network1Handle.SendPacket(*packet);
+		}
+		if (network0Handle.IsInitialized())
+		{
+			auto packet = network0Handle.GetPacket();
 
-			auto packet = pHandle.GetPacket();
-			auto address = packet->GetAddress();
-			std::cout << "Timestamp: " << address.Timestamp <<
-				"\nOutbound?: " << address.Outbound <<
-				"\nIPChecksumm: " << address.IPChecksum << std::endl;
-
-			//BOOL WinDivertHelperParsePacket(
-			//	__in PVOID pPacket,
-			//	__in UINT packetLen,
-			//	__out_opt PWINDIVERT_IPHDR * ppIpHdr,
-			//	__out_opt PWINDIVERT_IPV6HDR * ppIpv6Hdr,
-			//	__out_opt UINT8 * pProtocol,
-			//	__out_opt PWINDIVERT_ICMPHDR * ppIcmpHdr,
-			//	__out_opt PWINDIVERT_ICMPV6HDR * ppIcmpv6Hdr,
-			//	__out_opt PWINDIVERT_TCPHDR * ppTcpHdr,
-			//	__out_opt PWINDIVERT_UDPHDR * ppUdpHdr,
-			//	__out_opt PVOID * ppData,
-			//	__out_opt UINT * pDataLen,
-			//	__out_opt PVOID * ppNext,
-			//	__out_opt UINT * pNextLen
-			//);
-			WinDivertHelperParsePacket(packet->GetData(), packet->GetLength(), &ip_header, &ipv6_header, &protocol,
-				&icmp_header, &icmpv6_header, &tcp_header, &udp_header, NULL, NULL, NULL, NULL);
-			if (ip_header)
-			{
-				std::string src = pHandle.GetIPAddress(ip_header->SrcAddr);
-				std::string dest = pHandle.GetIPAddress(ip_header->DstAddr);
-				std::cout << "Source address: " << src <<
-					"\nDestination address: " << dest <<
-					"\nTTL: " << (unsigned int)ip_header->TTL << std::endl;
-			}
-			if (ipv6_header)
-			{
-				std::string src = pHandle.GetIPAddress(ipv6_header->SrcAddr);
-				std::string dest = pHandle.GetIPAddress(ipv6_header->DstAddr);
-				std::cout << "Source address: " << src <<
-					"\nDestination address: " << dest <<
-					"\nIPv6 " << std::endl;
-			}
+			std::cout <<	"Network Layer: Priority 0" << "\n" <<
+							"-------------------------" << std::endl;
+			PrintAddressDetails(packet->GetAddress());
+			PrintHeaderDetails(*packet);
 
 			std::cout << "Sending Packet:" << std::endl;
-			pHandle.SendPacket(*packet);
-		}
-		if (packetHandle.IsInitialized())
-		{
-			auto packet = packetHandle.GetPacket();
-			auto address = packet->GetAddress();
-			std::cout << "Timestamp: " << address.Timestamp <<
-				"\nOutbound?: " << address.Outbound <<
-				"\nIPChecksumm: " << address.IPChecksum << std::endl;
-
-			std::cout << "Sending Packet:" << std::endl;
-			packetHandle.SendPacket(*packet);
+			network0Handle.SendPacket(*packet);
 		}
 	}
 }
