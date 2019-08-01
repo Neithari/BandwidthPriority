@@ -179,11 +179,13 @@ std::string Header::GetSource()
 {
 	if (ip_header)
 	{
-		return Divert::GetIPAddress(ip_header->SrcAddr);
+		return Divert::GetIPAddress(WinDivertHelperNtohl(ip_header->SrcAddr));
 	}
 	if (ipv6_header)
 	{
-		return Divert::GetIPAddress(ipv6_header->SrcAddr);
+		UINT32 srcAddr[4];
+		WinDivertHelperNtohIPv6Address(ipv6_header->SrcAddr, srcAddr);
+		return Divert::GetIPAddress(srcAddr);
 	}
 	return std::string();
 }
@@ -192,11 +194,13 @@ std::string Header::GetDestination()
 {
 	if (ip_header)
 	{
-		return Divert::GetIPAddress(ip_header->DstAddr);
+		return Divert::GetIPAddress(WinDivertHelperNtohl(ip_header->DstAddr));
 	}
 	if (ipv6_header)
 	{
-		return Divert::GetIPAddress(ipv6_header->DstAddr);
+		UINT32 dstAddr[4];
+		WinDivertHelperNtohIPv6Address(ipv6_header->DstAddr, dstAddr);
+		return Divert::GetIPAddress(dstAddr);
 	}
 	return std::string();
 }
