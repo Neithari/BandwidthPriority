@@ -46,6 +46,7 @@ private:
 
 private:
 	HANDLE divertHandle;
+	WINDIVERT_LAYER layer;
 	bool initialized = false;
 };
 

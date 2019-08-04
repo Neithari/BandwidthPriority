@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <memory>
+#include <future>
+//#include <iphlpapi.h>
 
 // Data structures
 #include <string>

@@ -18,7 +18,7 @@ private:
 
 	char packetData[MAXBUFFER];
 	unsigned int packetSize = MAXBUFFER;
-	unsigned int packetLength;
+	unsigned int packetLength = 0;
 	WINDIVERT_ADDRESS address;
 };
 

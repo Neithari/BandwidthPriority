@@ -9,6 +9,8 @@ Divert::Divert()
 }
 
 Divert::Divert(const std::string& filter,const WINDIVERT_LAYER layer, int priority, unsigned int flags)
+	:
+	layer(layer)
 {
 	/*HANDLE WinDivertOpen(
 		__in const char* filter,
@@ -26,17 +28,16 @@ Divert::Divert(const std::string& filter,const WINDIVERT_LAYER layer, int priori
 	}
 	else
 	{
-		std::cout << "Divert Handle with filter \"" << filter << "\" opened" << std::endl;
+		std::cout << "Divert Handle with filter \"" << filter << "\" and layer \"" << layer << "\" opened" << std::endl;
 		initialized = true;
 	}
-
-	// TODO: Implement threading
 }
 
 Divert::~Divert()
 {
 	initialized = false;
 	WinDivertClose(divertHandle);
+	std::cout << "Divert Handle with layer \"" << layer << "\" closed" << std::endl;
 }
 
 bool Divert::IsInitialized() const
@@ -66,13 +67,24 @@ std::unique_ptr<Packet> Divert::GetPacket()
 		__out_opt WINDIVERT_ADDRESS* pAddr
 		);*/
 	auto packet = std::make_unique<Packet>();
-
-	// Read a matching packet.
-	if (!WinDivertRecv(divertHandle, packet->packetData, sizeof(packet->packetData), &packet->packetLength, &packet->address))
+	if (layer == WINDIVERT_LAYER_FLOW)
 	{
-		std::cerr << "warning: failed to read packet\n";
-		LogError(GetLastError());
+		if (!WinDivertRecv(divertHandle, nullptr, 0, nullptr, &packet->address))
+		{
+			std::cerr << "warning: failed to read packet\n";
+			LogError(GetLastError());
+		}
+
 	}
+	else if (layer == WINDIVERT_LAYER_NETWORK)
+	{
+		if (!WinDivertRecv(divertHandle, packet->packetData, sizeof(packet->packetData), &packet->packetLength, &packet->address))
+		{
+			std::cerr << "warning: failed to read packet\n";
+			LogError(GetLastError());
+		}
+	}
+	
 	return std::move(packet);
 }
 
@@ -85,7 +97,7 @@ void Divert::SendPacket(Packet& packet)
 		__out_opt UINT * pSendLen,
 		__in const WINDIVERT_ADDRESS * pAddr
 	);*/
-	if (!WinDivertSend(divertHandle, packet.packetData, packet.packetSize, &packet.packetLength, &packet.address))
+	if (!WinDivertSend(divertHandle, packet.packetData, packet.packetSize, &packet.packetLength, &packet.address) && layer == WINDIVERT_LAYER_NETWORK)
 	{
 		std::cerr << "warning: failed to reinject packet\n";
 		LogError(GetLastError());
@@ -102,7 +114,6 @@ std::string Divert::GetIPAddress(UINT32 address)
 std::string Divert::GetIPAddress(const UINT32* address)
 {
 	char buffer[128];
-	char destination[128];
 	WinDivertHelperFormatIPv6Address(address, buffer, sizeof(buffer));
 	return std::move(std::string(buffer));
 }
