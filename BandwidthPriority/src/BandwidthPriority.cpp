@@ -38,7 +38,7 @@ void PrintAddressDetails(const WINDIVERT_ADDRESS& address)
 						"DestAddr: "	<< Divert::GetIPAddress(dest)	<< "\n" <<
 						"DestPort: "	<< destPort						<< "\n" <<
 						"Protocol: "	<< (int)address.Flow.Protocol	<< "\n" <<
-						"ProcessID: " << address.Flow.ProcessId			<< std::endl;
+						"ProcessID: "	<< address.Flow.ProcessId		<< std::endl;
 	}
 }
 
@@ -51,7 +51,7 @@ void PrintHeaderDetails(const Packet& packet)
 					"DestAddr: "	<< header.GetDestination()		<< "\n" <<
 					"DestPort: "	<< header.GetDestinationPort()	<< "\n" <<
 					"Protocol: "	<< (int)header.protocol			<< "\n" <<
-					//"Length: "		<< header.GetLength()			<< "\n" <<
+					//"Length: "	<< header.GetLength()			<< "\n" <<
 					"Version: "		<< (int)header.GetVersion()		<< std::endl;
 }
 
@@ -77,26 +77,53 @@ std::vector<std::unique_ptr<Packet>> DivertWorker(std::string filter, WINDIVERT_
 
 int main(int argc, char** argv)
 {
+	/// Test Code for GetTcpTable2
+
+	/// auto tcpTable = std::make_unique<MIB_TCPTABLE2[]>(1);
+	/// ULONG ulSize = sizeof(MIB_TCPTABLE2);
+	/// unsigned int arraySize = 0;
+	/// DWORD dwRetVal;
+	/// if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == ERROR_INSUFFICIENT_BUFFER)
+	/// {
+	/// 	arraySize = ulSize / sizeof(MIB_TCPTABLE2);
+	/// 	tcpTable = std::make_unique<MIB_TCPTABLE2[]>(arraySize);
+	/// 	std::cerr << "Insufficient Buffer" << std::endl;
+	/// }
+	/// if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == NO_ERROR)
+	/// {
+	/// 	in_addr ipAddress;
+	/// 	for (unsigned int i = 0; i < arraySize; i++)
+	/// 	{
+	/// 		ipAddress.S_un.S_addr = (u_long)tcpTable[i].table->dwLocalAddr;
+	/// 		std::cout << inet_ntoa(ipAddress) << ":";
+	/// 		std::cout << ntohs(tcpTable[i].table->dwLocalPort) << std::endl;
+	/// 	}
+	/// }
+
 	// std::future to get return from threads
 	auto flow = std::async(DivertWorker, "true", WINDIVERT_LAYER_FLOW, 2, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
 	auto network = std::async(DivertWorker, "true", WINDIVERT_LAYER_NETWORK, 1, 0U);
-
+	
 	std::cin.get();
 	stopThreads = true;
 	auto flowPackets = flow.get();
 	auto networkPackets = network.get();
-
-	std::cout << "Flow Layer" << "\n" <<
-				 "----------" << std::endl;
-	for (auto& p : flowPackets)
+	
+	for (auto& f : flowPackets)
 	{
-		PrintAddressDetails(p->GetAddress());
-	}
-	std::cout << "\n" << "Network Layer:" << "\n" <<
-						 "--------------" << std::endl;
-	for (auto& p : networkPackets)
-	{
-		PrintAddressDetails(p->GetAddress());
-		PrintHeaderDetails(*p);
+		std::cout << "\n" << "Flow Layer" << "\n" <<
+							 "----------" << std::endl;
+		PrintAddressDetails(f->GetAddress());
+		
+		for (auto& n : networkPackets)
+		{
+			if (n->IsMatching(*f))
+			{
+				std::cout << "Matching Network Layer:" << "\n" <<
+							 "-----------------------" << std::endl;
+				PrintAddressDetails(n->GetAddress());
+				PrintHeaderDetails(*n);
+			}
+		}
 	}
 }

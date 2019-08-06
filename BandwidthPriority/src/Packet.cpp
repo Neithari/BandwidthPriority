@@ -21,3 +21,15 @@ const WINDIVERT_ADDRESS& Packet::GetAddress() const
 {
 	return address;
 }
+
+bool Packet::IsMatching(const Packet& other) const
+{
+	return tuple.IsMatching(other.tuple);
+}
+
+bool NetworkTuple::IsMatching(const NetworkTuple& other) const
+{
+	return  srcAddress.compare(other.srcAddress) == 0 && srcPort == other.srcPort &&
+			dstAddress.compare(other.dstAddress) == 0 && dstPort == other.dstPort &&
+			protocol == protocol;
+}

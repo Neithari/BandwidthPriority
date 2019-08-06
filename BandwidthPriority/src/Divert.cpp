@@ -75,6 +75,30 @@ std::unique_ptr<Packet> Divert::GetPacket()
 			LogError(GetLastError());
 		}
 
+		const UINT32* src, * dest;
+		UINT16 srcPort, destPort;
+		if (packet->address.Outbound == 1)
+		{
+			src = packet->address.Flow.LocalAddr;
+			dest = packet->address.Flow.RemoteAddr;
+
+			srcPort = packet->address.Flow.LocalPort;
+			destPort = packet->address.Flow.RemotePort;
+		}
+		else
+		{
+			src = packet->address.Flow.RemoteAddr;
+			dest = packet->address.Flow.LocalAddr;
+
+			srcPort = packet->address.Flow.RemotePort;
+			destPort = packet->address.Flow.LocalPort;
+		}
+
+		packet->tuple.srcAddress = GetIPAddress(src);
+		packet->tuple.srcPort = srcPort;
+		packet->tuple.dstAddress = GetIPAddress(dest);
+		packet->tuple.dstPort = destPort;
+		packet->tuple.protocol = packet->address.Flow.Protocol;
 	}
 	else if (layer == WINDIVERT_LAYER_NETWORK)
 	{
@@ -83,6 +107,13 @@ std::unique_ptr<Packet> Divert::GetPacket()
 			std::cerr << "warning: failed to read packet\n";
 			LogError(GetLastError());
 		}
+		Header header(*packet);
+
+		packet->tuple.srcAddress = header.GetSource();
+		packet->tuple.srcPort = header.GetSourcePort();
+		packet->tuple.dstAddress = header.GetDestination();
+		packet->tuple.dstPort = header.GetDestinationPort();
+		packet->tuple.protocol = header.protocol;
 	}
 	
 	return std::move(packet);
@@ -220,11 +251,11 @@ UINT16 Header::GetSourcePort()
 {
 	if (tcp_header)
 	{
-		return tcp_header->SrcPort;
+		return ntohs(tcp_header->SrcPort);
 	}
 	if (udp_header)
 	{
-		return udp_header->SrcPort;
+		return ntohs(udp_header->SrcPort);
 	}
 	return 0;
 }
@@ -233,11 +264,11 @@ UINT16 Header::GetDestinationPort()
 {
 	if (tcp_header)
 	{
-		return tcp_header->DstPort;
+		return ntohs(tcp_header->DstPort);
 	}
 	if (udp_header)
 	{
-		return udp_header->DstPort;
+		return ntohs(udp_header->DstPort);
 	}
 	return 0;
 }

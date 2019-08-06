@@ -4,7 +4,9 @@
 #include <iostream>
 #include <memory>
 #include <future>
-//#include <iphlpapi.h>
+#include <winsock.h>
+// iphlpapi must be after winsock
+#include <iphlpapi.h>
 
 // Data structures
 #include <string>
