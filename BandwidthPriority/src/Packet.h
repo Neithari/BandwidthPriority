@@ -23,6 +23,7 @@ public:
 	unsigned int GetSize() const;
 	unsigned int GetLength() const;
 	const WINDIVERT_ADDRESS& GetAddress() const;
+	// Will check if the NetworkTuples are the same.
 	bool IsMatching(const Packet& other) const;
 
 private:

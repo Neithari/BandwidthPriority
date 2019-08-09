@@ -1,3 +1,7 @@
+/// Capture of all TCP and only outgoing UDP is needed. That is because UDP has no error checking so delaying incomming UDP
+/// packets will not have the desired effect of reducing latency, but will instead result in breaking the connection using
+/// them in one way or the other.
+
 #include "pch.h"
 
 #include "Divert.h"
@@ -75,55 +79,64 @@ std::vector<std::unique_ptr<Packet>> DivertWorker(std::string filter, WINDIVERT_
 	return std::move(packets);
 }
 
-int main(int argc, char** argv)
+void PrintTcpTable()
 {
-	/// Test Code for GetTcpTable2
+	auto tcpTable = std::make_unique<MIB_TCPTABLE2[]>(1);
+	ULONG ulSize = sizeof(MIB_TCPTABLE2);
+	unsigned int arraySize = 0;
+	DWORD dwRetVal;
 
-	/// auto tcpTable = std::make_unique<MIB_TCPTABLE2[]>(1);
-	/// ULONG ulSize = sizeof(MIB_TCPTABLE2);
-	/// unsigned int arraySize = 0;
-	/// DWORD dwRetVal;
-	/// if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == ERROR_INSUFFICIENT_BUFFER)
-	/// {
-	/// 	arraySize = ulSize / sizeof(MIB_TCPTABLE2);
-	/// 	tcpTable = std::make_unique<MIB_TCPTABLE2[]>(arraySize);
-	/// 	std::cerr << "Insufficient Buffer" << std::endl;
-	/// }
-	/// if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == NO_ERROR)
-	/// {
-	/// 	in_addr ipAddress;
-	/// 	for (unsigned int i = 0; i < arraySize; i++)
-	/// 	{
-	/// 		ipAddress.S_un.S_addr = (u_long)tcpTable[i].table->dwLocalAddr;
-	/// 		std::cout << inet_ntoa(ipAddress) << ":";
-	/// 		std::cout << ntohs(tcpTable[i].table->dwLocalPort) << std::endl;
-	/// 	}
-	/// }
-
-	// std::future to get return from threads
-	auto flow = std::async(DivertWorker, "true", WINDIVERT_LAYER_FLOW, 2, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
-	auto network = std::async(DivertWorker, "true", WINDIVERT_LAYER_NETWORK, 1, 0U);
-	
-	std::cin.get();
-	stopThreads = true;
-	auto flowPackets = flow.get();
-	auto networkPackets = network.get();
-	
-	for (auto& f : flowPackets)
+	// Make an initial call to GetTcpTable2 to
+	// get the necessary size into the ulSize variable
+	if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == ERROR_INSUFFICIENT_BUFFER)
 	{
-		std::cout << "\n" << "Flow Layer" << "\n" <<
-							 "----------" << std::endl;
-		PrintAddressDetails(f->GetAddress());
-		
-		for (auto& n : networkPackets)
+		arraySize = ulSize / sizeof(MIB_TCPTABLE2);
+		tcpTable = std::make_unique<MIB_TCPTABLE2[]>(arraySize);
+	}
+	// Make a second call to GetTcpTable2 to get
+	// the actual data we require
+	if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == NO_ERROR)
+	{
+		// We need this pointer cast to access the underlying data the right way. If we access it like an Array
+		// the padding will corrupt the data I think and we get garbage results after the first.
+		PMIB_TCPTABLE2 pTcpTable = static_cast<PMIB_TCPTABLE2>(tcpTable.get());
+		in_addr ipAddress;
+		for (unsigned int i = 0; i < (int)pTcpTable->dwNumEntries; i++)
 		{
-			if (n->IsMatching(*f))
-			{
-				std::cout << "Matching Network Layer:" << "\n" <<
-							 "-----------------------" << std::endl;
-				PrintAddressDetails(n->GetAddress());
-				PrintHeaderDetails(*n);
-			}
+			ipAddress.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
+			std::cout << "ID: " << pTcpTable->table[i].dwOwningPid << "\tIP: " << inet_ntoa(ipAddress) << ":" << ntohs(pTcpTable->table[i].dwLocalPort) << std::endl;
 		}
 	}
+}
+
+int main(int argc, char** argv)
+{
+	PrintTcpTable();
+
+	// std::future to get return from threads
+	// auto flow = std::async(DivertWorker, "true", WINDIVERT_LAYER_FLOW, 2, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
+	// auto network = std::async(DivertWorker, "true", WINDIVERT_LAYER_NETWORK, 1, 0U);
+	// 
+	// std::cin.get();
+	// stopThreads = true;
+	// auto flowPackets = flow.get();
+	// auto networkPackets = network.get();
+	// 
+	// for (auto& f : flowPackets)
+	// {
+	// 	std::cout << "\n" << "Flow Layer" << "\n" <<
+	// 						 "----------" << std::endl;
+	// 	PrintAddressDetails(f->GetAddress());
+	// 	
+	// 	for (auto& n : networkPackets)
+	// 	{
+	// 		if (n->IsMatching(*f))
+	// 		{
+	// 			std::cout << "Matching Network Layer:" << "\n" <<
+	// 						 "-----------------------" << std::endl;
+	// 			PrintAddressDetails(n->GetAddress());
+	// 			PrintHeaderDetails(*n);
+	// 		}
+	// 	}
+	// }
 }
