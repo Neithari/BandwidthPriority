@@ -192,11 +192,13 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="src\WindowsHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Divert.h" />
     <ClInclude Include="src\Packet.h" />
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\WindowsHelper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

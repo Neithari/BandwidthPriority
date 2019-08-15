@@ -6,6 +6,7 @@
 
 #include "Divert.h"
 #include "Packet.h"
+#include "WindowsHelper.h"
 
 void PrintAddressDetails(const WINDIVERT_ADDRESS& address)
 {
@@ -97,21 +98,34 @@ void PrintTcpTable()
 	// the actual data we require
 	if ((dwRetVal = GetTcpTable2(tcpTable.get(), &ulSize, true)) == NO_ERROR)
 	{
-		// We need this pointer cast to access the underlying data the right way. If we access it like an Array
+		// We need this pointer cast to access the underlying data the right way. If we access it like an array
 		// the padding will corrupt the data I think and we get garbage results after the first.
 		PMIB_TCPTABLE2 pTcpTable = static_cast<PMIB_TCPTABLE2>(tcpTable.get());
 		in_addr ipAddress;
 		for (unsigned int i = 0; i < (int)pTcpTable->dwNumEntries; i++)
 		{
 			ipAddress.S_un.S_addr = (u_long)pTcpTable->table[i].dwLocalAddr;
-			std::cout << "ID: " << pTcpTable->table[i].dwOwningPid << "\tIP: " << inet_ntoa(ipAddress) << ":" << ntohs(pTcpTable->table[i].dwLocalPort) << std::endl;
+			std::cout << "ID: " << pTcpTable->table[i].dwOwningPid << "\tIP: " << inet_ntoa(ipAddress) << ":" << ntohs((u_short)pTcpTable->table[i].dwLocalPort) << std::endl;
 		}
 	}
 }
 
 int main(int argc, char** argv)
 {
-	PrintTcpTable();
+	WindowsHelper network;
+	auto tables = network.GetNetworkTableData();
+	for (auto& t: tables)
+	{
+		std::cout << "ID: " << t.processID << "\tIP: " << t.tuple.dstAddress << ":" << t.tuple.dstPort << "\n";
+		if (t.processID != 0)
+		{
+			std::wcout << t.processPath << "\n";
+		}
+	}
+
+	// std::cout << "TCP Table" << std::endl;
+	// PrintTcpTable();
+
 
 	// std::future to get return from threads
 	// auto flow = std::async(DivertWorker, "true", WINDIVERT_LAYER_FLOW, 2, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);

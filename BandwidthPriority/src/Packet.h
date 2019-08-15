@@ -5,11 +5,18 @@ struct NetworkTuple
 {
 	bool IsMatching(const NetworkTuple& other) const;
 
-	std::string srcAddress;
-	UINT16 srcPort;
-	std::string dstAddress;
-	UINT16 dstPort;
-	UINT8 protocol;
+	std::string srcAddress = "";
+	UINT16 srcPort = 0;
+	std::string dstAddress = "";
+	UINT16 dstPort = 0;
+	UINT8 protocol = 0;
+};
+
+struct NetworkData
+{
+	NetworkTuple tuple;
+	unsigned int processID = 0;
+	std::wstring processPath = L"";
 };
 
 class Packet

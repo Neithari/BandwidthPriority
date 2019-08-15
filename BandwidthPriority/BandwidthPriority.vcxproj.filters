@@ -30,6 +30,9 @@
     <ClCompile Include="src\pch.cpp">
       <Filter>Header Files\Precompiled Header</Filter>
     </ClCompile>
+    <ClCompile Include="src\WindowsHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Divert.h">
@@ -40,6 +43,9 @@
     </ClInclude>
     <ClInclude Include="src\pch.h">
       <Filter>Header Files\Precompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="src\WindowsHelper.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
