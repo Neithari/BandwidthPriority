@@ -15,7 +15,7 @@ struct NetworkTuple
 struct NetworkData
 {
 	NetworkTuple tuple;
-	unsigned int processID = 0;
+	unsigned long processID = 0;
 	std::wstring processPath = L"";
 };
 
@@ -30,6 +30,10 @@ public:
 	unsigned int GetSize() const;
 	unsigned int GetLength() const;
 	const WINDIVERT_ADDRESS& GetAddress() const;
+	const std::wstring& GetProcessPath() const;
+	void SetProcessPath(std::wstring&& path);
+	const DWORD GetProcessId() const;
+	void SetProcessId(DWORD processId);
 	// Will check if the NetworkTuples are the same.
 	bool IsMatching(const Packet& other) const;
 
@@ -40,5 +44,5 @@ private:
 	unsigned int packetSize = MAXBUFFER;
 	unsigned int packetLength = 0;
 	WINDIVERT_ADDRESS address;
-	NetworkTuple tuple;
+	NetworkData networkData;
 };

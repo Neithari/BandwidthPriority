@@ -7,6 +7,8 @@
 #include <winsock.h>
 // iphlpapi must be after winsock
 #include <iphlpapi.h>
+#include "Log.h"
+#include <chrono>
 
 // Data structures
 #include <string>
