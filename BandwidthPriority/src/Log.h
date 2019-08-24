@@ -1,11 +1,13 @@
 #pragma once
 #include <variant>
+#include "Packet.h"
+#include "Divert.h"
 
 namespace BandwidthPriority
 {
 	enum LogLevel
 	{
-		Info, Warning, Error, Fatal
+		Info, Debug, Warning, Error, Fatal
 	};
 	class Log
 	{
@@ -15,7 +17,11 @@ namespace BandwidthPriority
 
 		// Print every logged message with a LogLevel >= threshold.
 		static void PrintLog(LogLevel threshold);
-	private:
+
+		// Print packet details for debug/visualization
+		static void PrintHeaderDetails(const Packet& packet);
+		static void PrintAddressDetails(const WINDIVERT_ADDRESS& address);
+	/*private:
 		struct LogMessage
 		{
 			LogMessage(LogLevel level, std::string&& errorMessage);
@@ -24,8 +30,8 @@ namespace BandwidthPriority
 			std::variant<std::string, std::wstring> m_message;
 			LogLevel level = LogLevel::Info;
 			std::chrono::time_point<std::chrono::system_clock> timestamp;
-		};
+		};*/
 
-		static std::vector<LogMessage> logs;
+		// static std::vector<LogMessage> logs;
 	};
 }

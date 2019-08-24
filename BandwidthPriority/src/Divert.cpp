@@ -22,13 +22,15 @@ Divert::Divert(const std::string& filter,const WINDIVERT_LAYER layer, int priori
 
 	if (divertHandle == INVALID_HANDLE_VALUE)
 	{
-		std::cerr << "DivertHandle not opened.\n";
+		using namespace BandwidthPriority;
+		Log::log(LogLevel::Fatal, "Divert handle not opened.");
 		LogError(GetLastError());
 		initialized = false;
 	}
 	else
 	{
-		std::cout << "Divert Handle with filter \"" << filter << "\" and layer \"" << layer << "\" opened" << std::endl;
+		using namespace BandwidthPriority;
+		Log::log(LogLevel::Info, "Divert handle opened.");
 		initialized = true;
 	}
 }
@@ -37,7 +39,8 @@ Divert::~Divert()
 {
 	initialized = false;
 	WinDivertClose(divertHandle);
-	std::cout << "Divert Handle with layer \"" << layer << "\" closed" << std::endl;
+	using namespace BandwidthPriority;
+	Log::log(LogLevel::Info, "Divert handle closed.");
 }
 
 bool Divert::IsInitialized() const
@@ -51,7 +54,8 @@ std::unique_ptr<WINDIVERT_ADDRESS> Divert::GetPacketAddress() const
 	auto address = std::make_unique <WINDIVERT_ADDRESS>();
 	if (!WinDivertRecv(divertHandle, nullptr, 0,nullptr,address.get()))
 	{
-		std::cerr << "warning: failed to receive packet\n";
+		using namespace BandwidthPriority;
+		Log::log(LogLevel::Error, "Failed to receive packet.");
 		LogError(GetLastError());
 	}
 	return std::move(address);
@@ -71,10 +75,12 @@ std::unique_ptr<Packet> Divert::GetPacket()
 	{
 		if (!WinDivertRecv(divertHandle, nullptr, 0, nullptr, &packet->address))
 		{
-			std::cerr << "warning: failed to read packet\n";
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Error, "Failed to receive packet.");
 			LogError(GetLastError());
 		}
 
+		// Set source and destination based on outbound
 		const UINT32* src, * dest;
 		UINT16 srcPort, destPort;
 		if (packet->address.Outbound == 1)
@@ -93,33 +99,35 @@ std::unique_ptr<Packet> Divert::GetPacket()
 			srcPort = packet->address.Flow.RemotePort;
 			destPort = packet->address.Flow.LocalPort;
 		}
-
-		packet->tuple.srcAddress = GetIPAddress(src);
-		packet->tuple.srcPort = srcPort;
-		packet->tuple.dstAddress = GetIPAddress(dest);
-		packet->tuple.dstPort = destPort;
-		packet->tuple.protocol = packet->address.Flow.Protocol;
+		packet->networkData.tuple.srcAddress = GetIPAddress(src);
+		packet->networkData.tuple.srcPort = srcPort;
+		packet->networkData.tuple.dstAddress = GetIPAddress(dest);
+		packet->networkData.tuple.dstPort = destPort;
+		packet->networkData.tuple.protocol = packet->address.Flow.Protocol;
+		// Set processID
+		packet->SetProcessId(packet->address.Flow.ProcessId);
 	}
 	else if (layer == WINDIVERT_LAYER_NETWORK)
 	{
 		if (!WinDivertRecv(divertHandle, packet->packetData, sizeof(packet->packetData), &packet->packetLength, &packet->address))
 		{
-			std::cerr << "warning: failed to read packet\n";
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Error, "Failed to receive packet.");
 			LogError(GetLastError());
 		}
 		Header header(*packet);
 
-		packet->tuple.srcAddress = header.GetSource();
-		packet->tuple.srcPort = header.GetSourcePort();
-		packet->tuple.dstAddress = header.GetDestination();
-		packet->tuple.dstPort = header.GetDestinationPort();
-		packet->tuple.protocol = header.protocol;
+		packet->networkData.tuple.srcAddress = header.GetSource();
+		packet->networkData.tuple.srcPort = header.GetSourcePort();
+		packet->networkData.tuple.dstAddress = header.GetDestination();
+		packet->networkData.tuple.dstPort = header.GetDestinationPort();
+		packet->networkData.tuple.protocol = header.protocol;
 	}
 	
 	return std::move(packet);
 }
 
-void Divert::SendPacket(Packet& packet)
+bool Divert::SendPacket(Packet& packet)
 {
 	/*BOOL WinDivertSend(
 		__in HANDLE handle,
@@ -128,11 +136,29 @@ void Divert::SendPacket(Packet& packet)
 		__out_opt UINT * pSendLen,
 		__in const WINDIVERT_ADDRESS * pAddr
 	);*/
-	if (!WinDivertSend(divertHandle, packet.packetData, packet.packetSize, &packet.packetLength, &packet.address) && layer == WINDIVERT_LAYER_NETWORK)
+	if (layer == WINDIVERT_LAYER_NETWORK || layer == WINDIVERT_LAYER_NETWORK_FORWARD)
 	{
-		std::cerr << "warning: failed to reinject packet\n";
-		LogError(GetLastError());
+		if (!WinDivertSend(divertHandle, packet.packetData, packet.packetSize, &packet.packetLength, &packet.address))
+		{
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Error, "Failed to reinject packet");
+			LogError(GetLastError());
+			return false;
+		}
 	}
+	else
+	{
+		using namespace BandwidthPriority;
+		Log::log(LogLevel::Warning, "Handle layer is not a layer you can send packets.");
+		return false;
+	}
+	
+	return true;
+}
+
+WINDIVERT_LAYER Divert::GetLayer() const
+{
+	return layer;
 }
 
 std::string Divert::GetIPAddress(UINT32 address)
@@ -153,44 +179,46 @@ void Divert::LogError(const DWORD& errorCode) const
 {
 	switch (errorCode)
 	{
+		using namespace BandwidthPriority;
 		//WinDivertOpen
 	case ERROR_FILE_NOT_FOUND:
-		std::cerr << "The driver files WinDivert32.sys or WinDivert64.sys were not found." << std::endl;
+		Log::log(LogLevel::Fatal, "The driver files WinDivert32.sys or WinDivert64.sys were not found.");
 		break;
 	case ERROR_ACCESS_DENIED:
-		std::cerr << "You need Administrator privileges to run this application." << std::endl;
+		Log::log(LogLevel::Fatal, "You need Administrator privileges to run this application.");
 		break;
 	case ERROR_INVALID_PARAMETER:
-		std::cerr << "Failed to start filtering: invalid filter syntax." << std::endl;
+		Log::log(LogLevel::Error, "Failed to start filtering: invalid filter syntax.");
 		break;
 	case ERROR_INVALID_IMAGE_HASH:
-		std::cerr << "The WinDivert32.sys or WinDivert64.sys driver does not have a valid digital signature." << std::endl;
+		Log::log(LogLevel::Fatal, "The WinDivert32.sys or WinDivert64.sys driver does not have a valid digital signature.");
 		break;
 	case ERROR_DRIVER_FAILED_PRIOR_UNLOAD:
-		std::cerr << "An incompatible version of the WinDivert driver is currently loaded." << std::endl;
+		Log::log(LogLevel::Fatal, "An incompatible version of the WinDivert driver is currently loaded.");
 		break;
 	case ERROR_SERVICE_DOES_NOT_EXIST:
-		std::cerr << "The handle was opened with the WINDIVERT_FLAG_NO_INSTALL flag and the WinDivert driver is not already installed." << std::endl;
+		Log::log(LogLevel::Error, "The handle was opened with the WINDIVERT_FLAG_NO_INSTALL flag and the WinDivert driver is not already installed.");
 		break;
 	case ERROR_DRIVER_BLOCKED:
-		std::cerr << "Failed to open the WinDivert device because the driver was blocked." << std::endl;
+		Log::log(LogLevel::Fatal, "Failed to open the WinDivert device because the driver was blocked.");
 		break;
 	case EPT_S_NOT_REGISTERED:
-		std::cerr << "The Base Filtering Engine service has been disabled." << std::endl;
+		Log::log(LogLevel::Error, "The Base Filtering Engine service has been disabled.");
 		break;
 		// WinDivertRecv
 	case ERROR_INSUFFICIENT_BUFFER:
-		std::cerr << "The captured packet is larger than the packet buffer." << std::endl;
+		Log::log(LogLevel::Error, "The captured packet is larger than the packet buffer.");
 		break;
 	case ERROR_NO_DATA:
-		std::cerr << "The handle has been shutdown using WinDivertShutdown() and the packet queue is empty." << std::endl;
+		Log::log(LogLevel::Error, "The handle has been shutdown using WinDivertShutdown() and the packet queue is empty.");
 		break;
 		// WinDivertSend
 	case ERROR_HOST_UNREACHABLE:
-		std::cerr << "An impostor packet is injected and the ip.TTL or ipv6.HopLimit field is 0.\n" <<
-			"Refused to send to not get stuck in a infinite loop caused by impostor packets." << std::endl;
+		Log::log(LogLevel::Warning, "An impostor packet is injected and the ip.TTL or ipv6.HopLimit field is 0.");
+		Log::log(LogLevel::Warning, "Refused to send to not get stuck in a infinite loop caused by impostor packets.");
 		break;
 	default:
+		Log::log(LogLevel::Error, "An unknown error occured.");
 		std::cerr << "An unknown error occured (code:" << errorCode << ").\n" << std::endl;
 		break;
 	}

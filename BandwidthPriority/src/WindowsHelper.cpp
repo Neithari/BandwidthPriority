@@ -32,12 +32,14 @@ std::unique_ptr<MIB_TCPTABLE2[]> WindowsHelper::InitTcpTable()
 		return std::move(tcpTable);
 	}
 
+	using namespace BandwidthPriority;
+	Log::log(LogLevel::Error, "Could not get the tcp table.");
 	return nullptr;
 }
 
 std::wstring WindowsHelper::GetProcessPath(DWORD processID)
 {
-	/// TODO: Way too many fails. Need to find a better solution. Resolve \Device\HarddiskVolumeX into drive letter.
+	/// TODO: Way too many fails. Need to find a better solution.
 	HANDLE processHandle = NULL;
 	std::wstring path = L"";
 
@@ -58,7 +60,8 @@ std::wstring WindowsHelper::GetProcessPath(DWORD processID)
 	}
 	else
 	{
-		std::cerr << "Failed to open process." << std::endl;
+		using namespace BandwidthPriority;
+		Log::log(LogLevel::Warning, "Failed to open process.");
 	}
 
 	return std::move(path);
@@ -67,6 +70,7 @@ std::wstring WindowsHelper::GetProcessPath(DWORD processID)
 void WindowsHelper::ConstructNetworkData()
 {
 	/// TODO: Add IPv6 support
+	/// TODO: Add UDP table
 
 	auto tcpTable = InitTcpTable();
 	// We need this pointer cast to access the underlying data the right way. If we access it like an array
@@ -129,6 +133,8 @@ std::wstring WindowsHelper::GetDriveLetter(PWCHAR volumeName) const
 
 		if (GetLastError() != ERROR_MORE_DATA)
 		{
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Info, "There is no Path.");
 			// There is no spoon... I mean path.
 			break;
 		}
@@ -152,6 +158,9 @@ std::wstring WindowsHelper::GetDriveLetter(PWCHAR volumeName) const
 
 		return std::move(path);
 	}
+
+	using namespace BandwidthPriority;
+	Log::log(LogLevel::Warning, "Could not get path");
 	return std::wstring();
 }
 
@@ -172,10 +181,13 @@ std::wstring WindowsHelper::DeviceNameToDriveLetter(const std::wstring& deviceNa
 	if (findHandle == INVALID_HANDLE_VALUE)
 	{
 		error = GetLastError();
-		std::cerr << "FindFirstVolumeW failed with error code: " << error << std::endl;
-		return std::wstring();
+		std::string errorMessage = "FindFirstVolumeW failed with error code: " + std::to_string(GetLastError());
+		using namespace BandwidthPriority;
+		Log::log(LogLevel::Error, std::move(errorMessage));
+		return driveLetter;
 	}
 
+	// QUeryDosDevie untill we get a match or an error.
 	while (true)
 	{
 		// Skip the \\?\ prefix and remove the trailing backslash.
@@ -188,7 +200,9 @@ std::wstring WindowsHelper::DeviceNameToDriveLetter(const std::wstring& deviceNa
 			volumeName[index] != L'\\')
 		{
 			error = ERROR_BAD_PATHNAME;
-			std::wcerr << "FindFirstVolumeW/FindNextVolumeW returned a bad path: " << volumeName << std::endl;
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Error, L"FindFirstVolumeW/FindNextVolumeW returned a bad path:");
+			Log::log(LogLevel::Error, std::wstring(volumeName));
 			break;
 		}
 
@@ -203,10 +217,12 @@ std::wstring WindowsHelper::DeviceNameToDriveLetter(const std::wstring& deviceNa
 
 		if (charCount == 0)
 		{
-			error = GetLastError();
-			std::cerr << "QueryDosDeviceW failed with error code " << error << std::endl;
+			std::string errorMessage = "QueryDosDeviceW failed with error code: " + std::to_string(GetLastError());
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Error, std::move(errorMessage));
 			break;
 		}
+		// If we found the matching path, save the drive letter and break
 		if (deviceName[22] == currentDeviceName[22])
 		{
 			driveLetter = GetDriveLetter(volumeName);
@@ -222,13 +238,16 @@ std::wstring WindowsHelper::DeviceNameToDriveLetter(const std::wstring& deviceNa
 
 			if (error != ERROR_NO_MORE_FILES)
 			{
-				std::cerr << "FindNextVolumeW failed with error code " << error << std::endl;
+				std::string errorMessage = "FindNextVolumeW failed with error code: " + std::to_string(GetLastError());
+				using namespace BandwidthPriority;
+				Log::log(LogLevel::Error, std::move(errorMessage));
 				break;
 			}
 
 			// Finished iterating through all the volumes.
 			error = ERROR_SUCCESS;
-			std::cerr << "No matching device name found" << std::endl;
+			using namespace BandwidthPriority;
+			Log::log(LogLevel::Warning, "No matching device name found.");
 			break;
 		}
 	}

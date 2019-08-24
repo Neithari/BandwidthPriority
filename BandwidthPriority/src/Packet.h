@@ -5,6 +5,8 @@ struct NetworkTuple
 {
 	bool IsMatching(const NetworkTuple& other) const;
 
+	bool operator==(const NetworkTuple& other) const;
+
 	std::string srcAddress = "";
 	UINT16 srcPort = 0;
 	std::string dstAddress = "";
@@ -31,11 +33,16 @@ public:
 	unsigned int GetLength() const;
 	const WINDIVERT_ADDRESS& GetAddress() const;
 	const std::wstring& GetProcessPath() const;
-	void SetProcessPath(std::wstring&& path);
+	void SetProcessPath(std::wstring& path);
 	const DWORD GetProcessId() const;
 	void SetProcessId(DWORD processId);
+	const NetworkData& GetNetworkData() const;
 	// Will check if the NetworkTuples are the same.
 	bool IsMatching(const Packet& other) const;
+	bool IsMatching(const NetworkTuple& other) const;
+
+	// Use only in PacketManager GatherProcessData!
+	NetworkData&& PilferNetworkData();
 
 private:
 	friend class Divert;

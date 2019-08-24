@@ -3,10 +3,8 @@
 /// them in one way or the other.
 
 #include "pch.h"
-
 #include "Divert.h"
-#include "Packet.h"
-#include "WindowsHelper.h"
+#include "PacketManager.h"
 
 void PrintAddressDetails(const WINDIVERT_ADDRESS& address)
 {
@@ -112,45 +110,10 @@ void PrintTcpTable()
 
 int main(int argc, char** argv)
 {
-	WindowsHelper network;
-	auto tables = network.GetNetworkTableData();
-	for (auto& t: tables)
 	{
-		std::cout << "ID: " << t.processID << "\tIP: " << t.tuple.dstAddress << ":" << t.tuple.dstPort << "\n";
-		if (t.processID != 0)
-		{
-			std::wcout << t.processPath << "\n";
-		}
+		PacketManager packetManager(L"C:\\Windows\\System32\\PING.EXE");
+		std::cin.get();
 	}
-
-	// std::cout << "TCP Table" << std::endl;
-	// PrintTcpTable();
-
-
-	// std::future to get return from threads
-	// auto flow = std::async(DivertWorker, "true", WINDIVERT_LAYER_FLOW, 2, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
-	// auto network = std::async(DivertWorker, "true", WINDIVERT_LAYER_NETWORK, 1, 0U);
-	// 
-	// std::cin.get();
-	// stopThreads = true;
-	// auto flowPackets = flow.get();
-	// auto networkPackets = network.get();
-	// 
-	// for (auto& f : flowPackets)
-	// {
-	// 	std::cout << "\n" << "Flow Layer" << "\n" <<
-	// 						 "----------" << std::endl;
-	// 	PrintAddressDetails(f->GetAddress());
-	// 	
-	// 	for (auto& n : networkPackets)
-	// 	{
-	// 		if (n->IsMatching(*f))
-	// 		{
-	// 			std::cout << "Matching Network Layer:" << "\n" <<
-	// 						 "-----------------------" << std::endl;
-	// 			PrintAddressDetails(n->GetAddress());
-	// 			PrintHeaderDetails(*n);
-	// 		}
-	// 	}
-	// }
+	using namespace BandwidthPriority;
+	Log::PrintLog(LogLevel::Info);
 }

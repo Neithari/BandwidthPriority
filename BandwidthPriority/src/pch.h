@@ -3,19 +3,23 @@
 
 #include <iostream>
 #include <memory>
-#include <future>
+#include <thread>
+#include <mutex>
 #include <winsock.h>
 // iphlpapi must be after winsock
 #include <iphlpapi.h>
-#include "Log.h"
 #include <chrono>
 
 // Data structures
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 // Windows API
 #include <Windows.h>
 
 // WinDivert
 #include "windivert.h"
+
+// My commmon headers
+#include "Log.h"

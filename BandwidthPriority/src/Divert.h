@@ -12,13 +12,13 @@ struct Header
 	UINT8 GetVersion();
 	UINT16 GetLength();
 
-	PWINDIVERT_IPHDR ip_header;
-	PWINDIVERT_IPV6HDR ipv6_header;
-	PWINDIVERT_TCPHDR tcp_header;
-	PWINDIVERT_UDPHDR udp_header;
-	PWINDIVERT_ICMPHDR icmp_header;
-	PWINDIVERT_ICMPV6HDR icmpv6_header;
-	UINT8 protocol;
+	PWINDIVERT_IPHDR ip_header = nullptr;
+	PWINDIVERT_IPV6HDR ipv6_header = nullptr;
+	PWINDIVERT_UDPHDR udp_header = nullptr;
+	PWINDIVERT_TCPHDR tcp_header = nullptr;
+	PWINDIVERT_ICMPHDR icmp_header = nullptr;
+	PWINDIVERT_ICMPV6HDR icmpv6_header = nullptr;
+	UINT8 protocol = 0;
 };
 
 class Divert
@@ -36,7 +36,8 @@ public:
 	bool IsInitialized() const;
 	std::unique_ptr<WINDIVERT_ADDRESS> GetPacketAddress() const;
 	std::unique_ptr<Packet> GetPacket();
-	void SendPacket(Packet& packet);
+	bool SendPacket(Packet& packet);
+	WINDIVERT_LAYER GetLayer() const;
 
 	static std::string GetIPAddress(UINT32 address);
 	static std::string GetIPAddress(const UINT32* address);
