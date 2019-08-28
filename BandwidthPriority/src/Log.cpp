@@ -93,18 +93,16 @@ void BandwidthPriority::Log::PrintLog(LogLevel threshold)
 
 // Print packet details for debug/visualization
 
-inline void BandwidthPriority::Log::PrintHeaderDetails(const Packet& packet)
+void BandwidthPriority::Log::PrintHeaderDetails(const Packet& packet)
 {
 	Header header(packet);
 
-	std::cout <<"SourceAddr:\t"	<< header.GetSource()			<< "\n" <<
-				"SourcePort:\t"	<< header.GetSourcePort()		<< "\n" <<
-				"DestAddr:\t"	<< header.GetDestination()		<< "\n" <<
-				"DestPort:\t"	<< header.GetDestinationPort()	<< "\n" <<
-				"Protocol:\t"	<< (int)header.protocol			<< "\n" << std::endl;
+	std::cout <<"SourceAddr:\t"	<< header.GetSource()			<< ":" << header.GetSourcePort()	  << "\n" <<
+				"DestAddr:\t"	<< header.GetDestination()		<< ":" << header.GetDestinationPort() << "\n" <<
+				"Protocol:\t"	<< (int)header.protocol			<< std::endl;
 }
 
-inline void BandwidthPriority::Log::PrintAddressDetails(const WINDIVERT_ADDRESS& address)
+void BandwidthPriority::Log::PrintAddressDetails(const WINDIVERT_ADDRESS& address)
 {
 	if (address.Layer == WINDIVERT_LAYER_FLOW)
 	{
@@ -127,13 +125,18 @@ inline void BandwidthPriority::Log::PrintAddressDetails(const WINDIVERT_ADDRESS&
 			destPort = address.Flow.LocalPort;
 		}
 		
-		std::cout <<"SourceAddr:\t"	<< Divert::GetIPAddress(src)	<< "\n" <<
-					"SourcePort:\t"	<< srcPort						<< "\n" <<
-					"DestAddr:\t"	<< Divert::GetIPAddress(dest)	<< "\n" <<
-					"DestPort:\t"	<< destPort						<< "\n" <<
+		std::cout <<"SourceAddr:\t"	<< Divert::GetIPAddress(src)	<< ":"  << srcPort  << "\n" <<
+					"DestAddr:\t"	<< Divert::GetIPAddress(dest)	<< ":"  << destPort << "\n" <<
 					"Protocol:\t"	<< (int)address.Flow.Protocol	<< "\n" <<
 					"ProcessID:\t"	<< address.Flow.ProcessId		<< std::endl;
 	}
+}
+
+void BandwidthPriority::Log::PrintNetworkTuple(const NetworkTuple& tuple)
+{
+	std::cout << "Src. addr:\t" << tuple.srcAddress << ":" << tuple.srcPort << "\n";
+	std::cout << "Dst. addr:\t" << tuple.dstAddress << ":" << tuple.dstPort << "\n";
+	std::cout << "Protocol:\t" << (int)tuple.protocol << std::endl;
 }
 
 /*BandwidthPriority::Log::LogMessage::LogMessage(LogLevel level, std::string&& errorMessage)

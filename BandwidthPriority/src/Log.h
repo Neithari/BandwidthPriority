@@ -21,6 +21,7 @@ namespace BandwidthPriority
 		// Print packet details for debug/visualization
 		static void PrintHeaderDetails(const Packet& packet);
 		static void PrintAddressDetails(const WINDIVERT_ADDRESS& address);
+		static void PrintNetworkTuple(const NetworkTuple& tuple);
 	/*private:
 		struct LogMessage
 		{

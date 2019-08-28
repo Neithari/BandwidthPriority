@@ -41,7 +41,13 @@ void PacketManager::GetPacketsWorker(std::string filter)
 		while (!stopThreads)
 		{
 			auto packet = GetPacket(getHandle);
+			// print the packet details for debug
+			std::cout << "Get packet:" << std::endl;
+			BandwidthPriority::Log::PrintHeaderDetails(*packet);
+
 			SetPacketPath(*packet);
+			// print the path for debug
+			std::wcout << L"Path: " << packet->GetProcessPath() << std::endl;
 
 			if (PacketIsFromPriority(*packet))
 			{
@@ -74,12 +80,24 @@ void PacketManager::SendPacketsWorker()
 			if (!priorityQue.empty())
 			{
 				std::lock_guard<std::mutex> lock(mtx);
+				// print the packet details for debug
+				std::cout << "Send packet priority:" << std::endl;
+				BandwidthPriority::Log::PrintHeaderDetails(*priorityQue.back());
+				// print the path for debug
+				std::wcout << L"Path: " << priorityQue.back()->GetProcessPath() << std::endl;
+
 				sendHandle.SendPacket(*priorityQue.back());
 				priorityQue.pop_back();
 			}
 			else if (!normalQue.empty())
 			{
 				std::lock_guard<std::mutex> lock(mtx);
+				// print the packet details for debug
+				std::cout << "Send packet normal:" << std::endl;
+				BandwidthPriority::Log::PrintHeaderDetails(*normalQue.back());
+				// print the path for debug
+				std::wcout << L"Path: " << normalQue.back()->GetProcessPath() << std::endl;
+
 				sendHandle.SendPacket(*normalQue.back());
 				normalQue.pop_back();
 			}
@@ -88,12 +106,24 @@ void PacketManager::SendPacketsWorker()
 		while (!priorityQue.empty())
 		{
 			std::lock_guard<std::mutex> lock(mtx);
+			// print the packet details for debug
+			std::cout << "Send packet priority after stop:" << std::endl;
+			BandwidthPriority::Log::PrintHeaderDetails(*priorityQue.back());
+			// print the path for debug
+			std::wcout << L"Path: " << priorityQue.back()->GetProcessPath() << std::endl;
+
 			sendHandle.SendPacket(*priorityQue.back());
 			priorityQue.pop_back();
 		}
 		while (!normalQue.empty())
 		{
 			std::lock_guard<std::mutex> lock(mtx);
+			// print the packet details for debug
+			std::cout << "Send packet normal after stop:" << std::endl;
+			BandwidthPriority::Log::PrintHeaderDetails(*normalQue.back());
+			// print the path for debug
+			std::wcout << L"Path: " << normalQue.back()->GetProcessPath() << std::endl;
+
 			sendHandle.SendPacket(*normalQue.back());
 			normalQue.pop_back();
 		}
@@ -141,6 +171,12 @@ void PacketManager::GetNetworkTableData()
 void PacketManager::GatherProcessData()
 {
 	GetNetworkTableData();
+	// Print pathMap for debug
+	for (auto& it : pathMap)
+	{
+		BandwidthPriority::Log::PrintNetworkTuple(it.first);
+		std::wcout << L"Path:\t" << it.second << std::endl;
+	}
 
 	// Open a handle on flow layer to get all packets with process id to match them with other packets via network tuple.
 	Divert flowHandle("true", WINDIVERT_LAYER_FLOW, 100, WINDIVERT_FLAG_SNIFF | WINDIVERT_FLAG_RECV_ONLY);
@@ -158,8 +194,21 @@ void PacketManager::GatherProcessData()
 		if (packet)
 		{
 			auto networkData = packet->PilferNetworkData();
+			// print networkData for debug
+			std::cout << "PathMap:" << "\n";
+			BandwidthPriority::Log::PrintNetworkTuple(networkData.tuple);
+			std::wcout << L"Path:\t" << networkData.processPath << std::endl;
+
+
 			std::lock_guard<std::mutex> lock(mtx);
 			pathMap.insert({ networkData.tuple, networkData.processPath });
+			// Print pathMap for debug
+			std::cout << "PathMap:" << "\n";
+			for (auto& it : pathMap)
+			{
+				BandwidthPriority::Log::PrintNetworkTuple(it.first);
+				std::wcout << L"Path:\t" << it.second << std::endl;
+			}
 			using namespace BandwidthPriority;
 			std::string info = "Size of pathMap: " + std::to_string(pathMap.size());
 			Log::log(LogLevel::Debug, std::move(info));
