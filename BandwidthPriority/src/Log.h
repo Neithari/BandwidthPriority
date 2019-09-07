@@ -14,7 +14,7 @@ namespace BandwidthPriority
 	public:
 		// Print level for the log functions. Everything including this level will be printed.
 		// Set to Info for debug and to Error for release.
-		static const LogLevel printLevel = LogLevel::Info;
+		static const LogLevel printLevel = LogLevel::Error;
 
 		static void log(LogLevel level, std::string&& errorMessage);
 		static void log(LogLevel level, std::wstring&& errorMessage);
