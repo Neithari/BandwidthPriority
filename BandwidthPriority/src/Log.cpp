@@ -3,6 +3,11 @@
 
 void BandwidthPriority::Log::log(LogLevel level, std::string&& message)
 {
+	// Skip logging if level is < printLevel
+	if (level < printLevel)
+	{
+		return;
+	}
 	// logs.emplace_back(level, std::move(message));
 	switch (level)
 	{
@@ -30,6 +35,11 @@ void BandwidthPriority::Log::log(LogLevel level, std::string&& message)
 
 void BandwidthPriority::Log::log(LogLevel level, std::wstring&& message)
 {
+	// Skip logging if level is < printLevel
+	if (level < printLevel)
+	{
+		return;
+	}
 	// logs.emplace_back(level, std::move(message));
 	switch (level)
 	{

@@ -72,6 +72,11 @@ void WindowsHelper::ConstructNetworkData()
 	/// TODO: Add IPv6 support
 	/// TODO: Add UDP table
 
+	ConstructTcpData();
+}
+
+void WindowsHelper::ConstructTcpData()
+{
 	auto tcpTable = InitTcpTable();
 	// We need this pointer cast to access the underlying data the right way. If we access it like an array
 	// I think the padding will corrupt the data and we get garbage results after the first.
@@ -84,7 +89,7 @@ void WindowsHelper::ConstructNetworkData()
 		auto dstAddr = pTcpTable->table[i].dwRemoteAddr;
 		auto dstPort = pTcpTable->table[i].dwRemotePort;
 		in_addr ipAddress;
-		
+
 		/// TODO: Look for a proof this works 100% or find another solution
 		// If statement is true, then the connection is incoming, false is outgoing and we need to swap source and destination
 		if (srcPort == dstPort && srcPort != 0)
@@ -107,6 +112,8 @@ void WindowsHelper::ConstructNetworkData()
 
 		tableData.back().processID = (unsigned int)pTcpTable->table[i].dwOwningPid;
 		tableData.back().processPath = GetProcessPath(pTcpTable->table[i].dwOwningPid);
+		// Set protocol to 6 for TCP
+		tableData.back().tuple.protocol = 6;
 	}
 }
 

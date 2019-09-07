@@ -3,7 +3,7 @@
 #include "WindowsHelper.h"
 #include "Packet.h"
 
-// Hash_combine out oof boost library
+// Hash_combine out of boost library
 template <class T>
 inline void hash_combine(std::size_t& seed, const T& v)
 {
@@ -41,9 +41,6 @@ public:
 	PacketManager& operator=(const PacketManager& other) = delete;
 	PacketManager& operator=(PacketManager&& other) = delete;
 
-	// Needs to be threaded or will run for ever
-	void StartPacketManager();
-
 	void StopPacketManager();
 private:
 	bool PacketIsFromPriority(const Packet& packet) const;
@@ -55,8 +52,12 @@ private:
 	void GetNetworkTableData();
 	// Start in thread. Will constantly update pathMap.
 	void GatherProcessData();
+	/// TODO: Find a better solution for this problem. Pref. without writing a custom unordered map search function.
+	NetworkTuple ReverseTuple(const NetworkTuple& other) const;
 private:
 	std::wstring priorityPath = L"";
+	// To get paths and tables
+	WindowsHelper windows;
 	// Divert send ques
 	std::vector<std::unique_ptr<Packet>> priorityQue;
 	std::vector<std::unique_ptr<Packet>> normalQue;
@@ -68,6 +69,4 @@ private:
 	std::thread t_sendPackets;
 	// Put into a lock_guard
 	std::unordered_map<NetworkTuple, std::wstring> pathMap;
-	// To get paths and tables
-	WindowsHelper windows;
 };

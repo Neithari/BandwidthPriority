@@ -13,6 +13,8 @@ private:
 	// Initialize the tcp table. Used to construct the NetworkData vector
 	std::unique_ptr<MIB_TCPTABLE2[]> InitTcpTable();
 	void ConstructNetworkData();
+	void ConstructTcpData();
+
 	std::wstring GetProcessPath(DWORD processID);
 	std::wstring GetDriveLetter(PWCHAR volumeName) const;
 	std::wstring DeviceNameToDriveLetter(const std::wstring& deviceName) const;
