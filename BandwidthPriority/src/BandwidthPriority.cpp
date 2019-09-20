@@ -8,8 +8,15 @@
 
 int main(int argc, char** argv)
 {
+	std::cout << "Please enter priority programm path...(Format: C:\\foo\\bar.exe)" << std::endl;
+	std::wstring priorityPath;
+	std::getline(std::wcin, priorityPath);
+
+	std::wcout << L"\n" << priorityPath << L" will be prioritized.\nPress Enter to start and again to stop!" << std::endl;
+	std::cin.get();
+
 	{
-		PacketManager packetManager(L"C:\\Program Files\\Firefox Nightly\\firefox.exe");
+		PacketManager packetManager(priorityPath);
 		std::cin.get();
 	}
 	using namespace BandwidthPriority;
